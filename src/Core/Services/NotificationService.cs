@@ -4,6 +4,7 @@ using System.Timers;
 using Bit.Core.Abstractions;
 using Bit.Core.Enums;
 using Bit.Core.Models.Response;
+using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -20,31 +21,31 @@ namespace Bit.Core.Services
 
         private readonly IApiService _apiService;
         private readonly IAppIdService _appIdService;
-        private readonly IEnvironmentService _environmentService;
+        private readonly Func<bool, Task> _logoutCallbackAsync;
         private readonly ILogService _logService;
-        private readonly IMessagingService _messagingService;
         private readonly ISyncService _syncService;
         private readonly IUserService _userService;
         private readonly IVaultTimeoutService _vaultTimeoutService;
 
         private bool _connected = false;
+        private IEnvironmentService _environmentService;
         private bool _inited = false;
         private bool _inactive = false;
         private Timer _reconnectTimer;
         private HubConnection _signalrConnection;
         private string _url;
 
-        public NotificationService(IEnvironmentService environmentService, IUserService userService,
+        public NotificationService(IUserService userService,
             ISyncService syncService, IAppIdService appIdService, IApiService apiService,
-            IVaultTimeoutService vaultTimeoutService, IMessagingService messagingService, ILogService logService)
+            IVaultTimeoutService vaultTimeoutService, Func<bool, Task> logoutCallbackAsync, 
+            ILogService logService)
         {
-            _environmentService = environmentService;
             _userService = userService;
             _syncService = syncService;
             _appIdService = appIdService;
             _apiService = apiService;
             _vaultTimeoutService = vaultTimeoutService;
-            _messagingService = messagingService;
+            _logoutCallbackAsync = logoutCallbackAsync;
             _logService = logService;
         }
 
@@ -59,6 +60,10 @@ namespace Bit.Core.Services
         {
             _inited = false;
             _url = "https://notifications.bitwarden.com";
+
+            if (_environmentService == null)
+                _environmentService = ServiceContainer.Resolve<IEnvironmentService>("");
+            
             if (_environmentService.NotificationsUrl != null)
                 _url = _environmentService.NotificationsUrl;
             else if (_environmentService.BaseUrl != null)
@@ -187,7 +192,7 @@ namespace Bit.Core.Services
                     break;
                 case NotificationType.LogOut:
                     if (isAuthenticated)
-                        _messagingService.Send("logout");
+                        await _logoutCallbackAsync.Invoke(false);
                     break;
                 default:
                     break;
