@@ -64,7 +64,7 @@ namespace Bit.Core.Services
             _url = "https://notifications.bitwarden.com";
             if (_environmentService == null)
             {
-                _environmentService = ServiceContainer.Resolve<IEnvironmentService>("");
+                _environmentService = ServiceContainer.Resolve<IEnvironmentService>("environmentService");
             }
             if (_environmentService.NotificationsUrl != null)
             { 
