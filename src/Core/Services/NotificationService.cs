@@ -53,26 +53,34 @@ namespace Bit.Core.Services
         {
             _inactive = true;
             if (_inited && _connected)
+            {
                 await _signalrConnection.StopAsync();
+            }
         }
 
         public async Task InitAsync()
         {
             _inited = false;
             _url = "https://notifications.bitwarden.com";
-
             if (_environmentService == null)
+            {
                 _environmentService = ServiceContainer.Resolve<IEnvironmentService>("");
-            
+            }
             if (_environmentService.NotificationsUrl != null)
+            { 
                 _url = _environmentService.NotificationsUrl;
+            }
             else if (_environmentService.BaseUrl != null)
+            { 
                 _url = _environmentService.BaseUrl + "/notifications";
+            }
 
             // Set notifications server URL to `https://-` to effectively disable communication
             // with the notifications server from the client app
             if (_url == "https://-")
+            {
                 return;
+            }
 
             if (_signalrConnection != null)
             {
@@ -101,7 +109,9 @@ namespace Bit.Core.Services
             _signalrConnection.Closed += OnClosedAsync;
             _inited = true;
             if (await IsAuthedAndUnlockedAsync())
+            {
                 await ReconnectAsync(false);
+            }
         }
 
         public async Task ReconnectFromActivityAsync()
@@ -139,13 +149,16 @@ namespace Bit.Core.Services
         {
             var appId = await _appIdService.GetAppIdAsync();
             if (notification == null || notification.ContextId == appId)
+            {
                 return;
+            }
 
             var isAuthenticated = await _userService.IsAuthenticatedAsync();
             var myUserId = await _userService.GetUserIdAsync();
             if (!isAuthenticated || string.IsNullOrWhiteSpace(myUserId))
+            {
                 return;
-
+            }
             switch (notification.Type)
             {
                 case NotificationType.SyncCipherUpdate:
@@ -217,28 +230,32 @@ namespace Bit.Core.Services
                 _reconnectTimer.Stop();
                 _reconnectTimer = null;
             }
-
             if (_connected || !_inited || _inactive)
+            {
                 return;
-
+            }
             var authedAndUnlocked = await IsAuthedAndUnlockedAsync();
             if (!authedAndUnlocked)
+            {
                 return;
-
+            }
             try
             {
                 await _signalrConnection.StartAsync();
                 _connected = true;
                 if (sync)
+                {
                     await _syncService.FullSyncAsync(false);
+                }
             }
             catch (Exception e)
             {
                 _logService.Error(e.Message);
             }
-
             if (_connected)
+            {
                 return;
+            }
 
             _reconnectTimer = new Timer(300000)
             {
