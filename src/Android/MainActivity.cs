@@ -31,6 +31,7 @@ namespace Bit.Droid
     [Register("com.x8bit.bitwarden.MainActivity")]
     public class MainActivity : Xamarin.Forms.Platform.Android.FormsAppCompatActivity
     {
+        private INotificationService _notificationService;
         private IDeviceActionService _deviceActionService;
         private IMessagingService _messagingService;
         private IBroadcasterService _broadcasterService;
@@ -68,6 +69,7 @@ namespace Bit.Droid
             _appIdService = ServiceContainer.Resolve<IAppIdService>("appIdService");
             _storageService = ServiceContainer.Resolve<IStorageService>("storageService");
             _eventService = ServiceContainer.Resolve<IEventService>("eventService");
+            _notificationService = ServiceContainer.Resolve<INotificationService>("notificationService");
 
             TabLayoutResource = Resource.Layout.Tabbar;
             ToolbarResource = Resource.Layout.Toolbar;
@@ -154,6 +156,8 @@ namespace Bit.Droid
                 catch { }
             }
             var setRestrictions = AndroidHelpers.SetPreconfiguredRestrictionSettingsAsync(this);
+            Task.Run(async () => await _notificationService.InitAsync());
+
         }
 
         protected override void OnNewIntent(Intent intent)

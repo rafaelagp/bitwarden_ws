@@ -97,9 +97,6 @@ namespace Bit.Core.Services
             }
 
             _apiService.SetUrls(envUrls);
-            if (_notificationService != null)
-                await _notificationService.InitAsync();
-
             return urls;
         }
 
