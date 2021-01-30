@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Bit.Core.Services
@@ -94,17 +95,24 @@ namespace Bit.Core.Services
             }
 
             _signalrConnection = new HubConnectionBuilder()
-                .WithUrl(_url + "/hub", options => new HttpConnectionOptions
+                .WithUrl(_url + "/hub", options =>
                 {
-                    AccessTokenProvider = () => _apiService.GetActiveBearerTokenAsync(),
-                    SkipNegotiation = true,
-                    Transports = HttpTransportType.WebSockets
+                    options.AccessTokenProvider = async () => await _apiService.GetActiveBearerTokenAsync();
+                    options.SkipNegotiation = true;
+                    options.Transports = HttpTransportType.WebSockets;
                 })
                 .AddMessagePackProtocol()
-                //.ConfigureLogging(LogLevel.Trace)
+#if DEBUG
+                .ConfigureLogging(logger => 
+                {
+                    logger.SetMinimumLevel(LogLevel.Debug);
+                    logger.ClearProviders();
+                    logger.AddConsole();
+                })
+#endif
                 .Build();
 
-            _signalrConnection.On<NotificationResponse>(HubMethodReceiveMessage, ProcessNotificationAsync);
+            _signalrConnection.On<object>(HubMethodReceiveMessage, ProcessNotificationAsync);
             _signalrConnection.On(HubMethodHeartbeat, () => Console.WriteLine("Heartbeat!"));
             _signalrConnection.Closed += OnClosedAsync;
             _inited = true;
@@ -145,8 +153,12 @@ namespace Bit.Core.Services
             await ReconnectAsync(true);
         }
 
-        private async Task ProcessNotificationAsync(NotificationResponse notification)
+        private async Task ProcessNotificationAsync(object data)
         {
+            if (!(data is string dataString))
+                return;
+
+            var notification = JsonConvert.DeserializeObject<NotificationResponse>(dataString);
             var appId = await _appIdService.GetAppIdAsync();
             if (notification == null || notification.ContextId == appId)
             {
