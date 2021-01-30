@@ -1,4 +1,6 @@
-﻿using Bit.App.Abstractions;
+﻿using System;
+using System.Threading.Tasks;
+using Bit.App.Abstractions;
 using Bit.App.Models;
 using Bit.App.Pages;
 using Bit.App.Resources;
@@ -7,8 +9,6 @@ using Bit.App.Utilities;
 using Bit.Core;
 using Bit.Core.Abstractions;
 using Bit.Core.Utilities;
-using System;
-using System.Threading.Tasks;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 
@@ -37,6 +37,7 @@ namespace Bit.App
         private readonly IStorageService _storageService;
         private readonly IStorageService _secureStorageService;
         private readonly IDeviceActionService _deviceActionService;
+        private readonly INotificationService _notificationService;
 
         private static bool _isResumed;
 
@@ -69,6 +70,7 @@ namespace Bit.App
                 "passwordGenerationService");
             _i18nService = ServiceContainer.Resolve<II18nService>("i18nService") as MobileI18nService;
             _deviceActionService = ServiceContainer.Resolve<IDeviceActionService>("deviceActionService");
+            _notificationService = ServiceContainer.Resolve<INotificationService>("notificationService");
 
             Bootstrap();
             _broadcasterService.Subscribe(nameof(App), async (message) =>
@@ -93,8 +95,13 @@ namespace Bit.App
                         _messagingService.Send("showDialogResolve", new Tuple<int, bool>(details.DialogId, confirmed));
                     });
                 }
+                else if (message.Command == "unlocked")
+                {
+                    await _notificationService.UpdateConnectionAsync();
+                }
                 else if (message.Command == "locked")
                 {
+                    await _notificationService.UpdateConnectionAsync();
                     await LockedAsync(!(message.Data as bool?).GetValueOrDefault());
                 }
                 else if (message.Command == "lockVault")
@@ -108,6 +115,7 @@ namespace Bit.App
                 }
                 else if (message.Command == "loggedOut")
                 {
+                    await _notificationService.UpdateConnectionAsync();
                     // Clean up old migrated key if they ever log out.
                     await _secureStorageService.RemoveAsync("oldKey");
                 }
