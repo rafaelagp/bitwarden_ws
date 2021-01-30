@@ -26,6 +26,7 @@ namespace Bit.Core.Utilities
             var cryptoPrimitiveService = Resolve<ICryptoPrimitiveService>("cryptoPrimitiveService");
             var i18nService = Resolve<II18nService>("i18nService");
             var messagingService = Resolve<IMessagingService>("messagingService");
+            var logService = Resolve<ILogService>("logService");
             SearchService searchService = null;
 
             var stateService = new StateService();
@@ -68,7 +69,13 @@ namespace Bit.Core.Utilities
                 i18nService, platformUtilsService, messagingService, vaultTimeoutService);
             var exportService = new ExportService(folderService, cipherService);
             var auditService = new AuditService(cryptoFunctionService, apiService);
-            var environmentService = new EnvironmentService(apiService, storageService);
+            var notificationService = new NotificationService(userService, syncService, appIdService, apiService, 
+                vaultTimeoutService, (expired) =>
+                {
+                    messagingService.Send("logout", expired);
+                    return Task.FromResult(0);
+                }, logService);
+            var environmentService = new EnvironmentService(apiService, storageService, notificationService);
             var eventService = new EventService(storageService, apiService, userService, cipherService);
 
             Register<IStateService>("stateService", stateService);
@@ -91,6 +98,7 @@ namespace Bit.Core.Utilities
             Register<IAuthService>("authService", authService);
             Register<IExportService>("exportService", exportService);
             Register<IAuditService>("auditService", auditService);
+            Register<INotificationService>("notificationService", notificationService);
             Register<IEnvironmentService>("environmentService", environmentService);
             Register<IEventService>("eventService", eventService);
         }
