@@ -1,21 +1,24 @@
-﻿using Bit.Core.Abstractions;
+﻿using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Bit.Core.Abstractions;
 using Bit.Core.Models.Data;
 using Bit.Core.Models.Domain;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Bit.Core.Services
 {
     public class EnvironmentService : IEnvironmentService
     {
         private readonly IApiService _apiService;
+        private readonly INotificationService _notificationService;
         private readonly IStorageService _storageService;
 
         public EnvironmentService(
             IApiService apiService,
-            IStorageService storageService)
+            IStorageService storageService,
+            INotificationService notificationService)
         {
             _apiService = apiService;
+            _notificationService = notificationService;
             _storageService = storageService;
         }
 
@@ -94,6 +97,9 @@ namespace Bit.Core.Services
             }
 
             _apiService.SetUrls(envUrls);
+            if (_notificationService != null)
+                await _notificationService.InitAsync();
+
             return urls;
         }
 
