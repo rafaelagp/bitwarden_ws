@@ -1,11 +1,18 @@
-﻿using Bit.Core.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Bit.Core.Enums;
 
 namespace Bit.Core.Models.Response
 {
     public class NotificationResponse
     {
+        public NotificationResponse() { }
+        public NotificationResponse(dynamic data)
+        {
+            ContextId = (string) data[nameof(ContextId)];
+            PayloadObject = data[nameof(Payload)];
+            Type = (NotificationType) (int) data[nameof(Type)];
+        }
         public string ContextId { get; set; }
         public NotificationType Type { get; set; }
         public string Payload { get; set; }

@@ -6,11 +6,9 @@ using Bit.Core.Enums;
 using Bit.Core.Models.Response;
 using Bit.Core.Utilities;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Bit.Core.Services
 {
@@ -153,12 +151,9 @@ namespace Bit.Core.Services
             await ReconnectAsync(true);
         }
 
-        private async Task ProcessNotificationAsync(object data)
+        private async Task ProcessNotificationAsync(dynamic data)
         {
-            if (!(data is string dataString))
-                return;
-
-            var notification = JsonConvert.DeserializeObject<NotificationResponse>(dataString);
+            var notification = new NotificationResponse(data);
             var appId = await _appIdService.GetAppIdAsync();
             if (notification == null || notification.ContextId == appId)
             {
@@ -175,30 +170,26 @@ namespace Bit.Core.Services
             {
                 case NotificationType.SyncCipherUpdate:
                 case NotificationType.SyncCipherCreate:
-                    var cipherCreateUpdateMessage = JsonConvert.DeserializeObject<SyncCipherNotification>(
-                        notification.Payload);
+                    var cipherCreateUpdateMessage = notification.ToSyncCipherNotification();
                     if (isAuthenticated && cipherCreateUpdateMessage.UserId == myUserId)
                         await _syncService.SyncUpsertCipherAsync(cipherCreateUpdateMessage,
                             notification.Type == NotificationType.SyncCipherUpdate);
                     break;
                 case NotificationType.SyncFolderUpdate:
                 case NotificationType.SyncFolderCreate:
-                    var folderCreateUpdateMessage = JsonConvert.DeserializeObject<SyncFolderNotification>(
-                        notification.Payload);
+                    var folderCreateUpdateMessage = notification.ToSyncFolderNotification();
                     if (isAuthenticated && folderCreateUpdateMessage.UserId == myUserId)
                         await _syncService.SyncUpsertFolderAsync(folderCreateUpdateMessage,
                             notification.Type == NotificationType.SyncFolderUpdate);
                     break;
                 case NotificationType.SyncLoginDelete:
                 case NotificationType.SyncCipherDelete:
-                    var loginDeleteMessage = JsonConvert.DeserializeObject<SyncCipherNotification>(
-                        notification.Payload);
+                    var loginDeleteMessage = notification.ToSyncCipherNotification();
                     if (isAuthenticated && loginDeleteMessage.UserId == myUserId)
                         await _syncService.SyncDeleteCipherAsync(loginDeleteMessage);
                     break;
                 case NotificationType.SyncFolderDelete:
-                    var folderDeleteMessage = JsonConvert.DeserializeObject<SyncFolderNotification>(
-                        notification.Payload);
+                    var folderDeleteMessage = notification.ToSyncFolderNotification();
                     if (isAuthenticated && folderDeleteMessage.UserId == myUserId)
                         await _syncService.SyncDeleteFolderAsync(folderDeleteMessage);
                     break;
